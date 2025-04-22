@@ -9,7 +9,7 @@ Neste exemplo, utilizamos a biblioteca WiFiClientSecure com o método `setInsecu
 ## Requisitos
 
 - Placa ESP32 (DOIT DevKit V1 ou equivalente)
-- IDE Arduino com suporte à ESP32
+- Arduino IDE com suporte ao ESP32
 - Biblioteca Arduino_JSON instalada
 - Conexão com a internet via Wi-Fi
 
