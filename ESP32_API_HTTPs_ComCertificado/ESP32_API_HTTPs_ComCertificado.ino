@@ -1,6 +1,7 @@
 /********************************************************************
- * Projeto: Consulta da cotação do dólar (USD-BRL) via HTTPS        *
+ * Projeto: Consulta de CEP via HTTPS                               *
  * Autor: André Tritiack                                            *
+ * Modificado por: Vitor Onofre Ramos                               *
  *                                                                  *
  * Este exemplo conecta o ESP32 a uma rede Wi-Fi e utiliza a        *
  * biblioteca WiFiClientSecure para realizar uma requisição HTTPS   *
@@ -10,7 +11,8 @@
  * Este exemplo utiliza validação de certificado SSL/TLS, garantindo*
  * uma conexão segura com o servidor remoto.                        *
  *                                                                  *
- * Link da API: https://economia.awesomeapi.com.br/json/last/USD-BRL
+ * Link da API: https://viacep.com.br
+ * C:\Users\labsfiap>openssl s_client -showcerts -connect viacep.com.br:443
  ********************************************************************/
 
 // Bibliotecas já instaladas
@@ -22,8 +24,8 @@
 #include <Arduino_JSON.h>
 
 // WiFi e Timer
-const char* SECRET_SSID = "INSIRA O NOME DA SUA REDE WIFI";
-const char* SECRET_PW = "INSIRA A SENHA DA SUA REDE WIFI";
+const char* SECRET_SSID = "";
+const char* SECRET_PW = "";
 unsigned long lastTime = 0;
 unsigned long timerDelay = 10000;
 
@@ -33,25 +35,29 @@ String jsonBuffer;
 // Certificado SSL da API (atual em abril de 2025)
 const char* root_ca = R"EOF(
 -----BEGIN CERTIFICATE-----
-MIIDejCCAmKgAwIBAgIQf+UwvzMTQ77dghYQST2KGzANBgkqhkiG9w0BAQsFADBX
-MQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xvYmFsU2lnbiBudi1zYTEQMA4GA1UE
-CxMHUm9vdCBDQTEbMBkGA1UEAxMSR2xvYmFsU2lnbiBSb290IENBMB4XDTIzMTEx
-NTAzNDMyMVoXDTI4MDEyODAwMDA0MlowRzELMAkGA1UEBhMCVVMxIjAgBgNVBAoT
-GUdvb2dsZSBUcnVzdCBTZXJ2aWNlcyBMTEMxFDASBgNVBAMTC0dUUyBSb290IFI0
-MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE83Rzp2iLYK5DuDXFgTB7S0md+8Fhzube
-Rr1r1WEYNa5A3XP3iZEwWus87oV8okB2O6nGuEfYKueSkWpz6bFyOZ8pn6KY019e
-WIZlD6GEZQbR3IvJx3PIjGov5cSr0R2Ko4H/MIH8MA4GA1UdDwEB/wQEAwIBhjAd
-BgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDwYDVR0TAQH/BAUwAwEB/zAd
-BgNVHQ4EFgQUgEzW63T/STaj1dj8tT7FavCUHYwwHwYDVR0jBBgwFoAUYHtmGkUN
-l8qJUC99BM00qP/8/UswNgYIKwYBBQUHAQEEKjAoMCYGCCsGAQUFBzAChhpodHRw
-Oi8vaS5wa2kuZ29vZy9nc3IxLmNydDAtBgNVHR8EJjAkMCKgIKAehhxodHRwOi8v
-Yy5wa2kuZ29vZy9yL2dzcjEuY3JsMBMGA1UdIAQMMAowCAYGZ4EMAQIBMA0GCSqG
-SIb3DQEBCwUAA4IBAQAYQrsPBtYDh5bjP2OBDwmkoWhIDDkic574y04tfzHpn+cJ
-odI2D4SseesQ6bDrarZ7C30ddLibZatoKiws3UL9xnELz4ct92vID24FfVbiI1hY
-+SW6FoVHkNeWIP0GCbaM4C6uVdF5dTUsMVs/ZbzNnIdCp5Gxmx5ejvEau8otR/Cs
-kGN+hr/W5GvT1tMBjgWKZ1i4//emhA1JG1BbPzoLJQvyEotc03lXjTaCzv8mEbep
-8RqZ7a2CPsgRbuvTPBwcOMBBmuFeU88+FSBX6+7iP0il8b4Z0QFqIwwMHfs/L6K1
-vepuoxtGzi4CZ68zJpiq1UvSqTbFJjtbD4seiMHl
+MIIEMjCCAxqgAwIBAgIBATANBgkqhkiG9w0BAQUFADB7MQswCQYDVQQGEwJHQjEb
+MBkGA1UECAwSR3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHDAdTYWxmb3JkMRow
+GAYDVQQKDBFDb21vZG8gQ0EgTGltaXRlZDEhMB8GA1UEAwwYQUFBIENlcnRpZmlj
+YXRlIFNlcnZpY2VzMB4XDTA0MDEwMTAwMDAwMFoXDTI4MTIzMTIzNTk1OVowezEL
+MAkGA1UEBhMCR0IxGzAZBgNVBAgMEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UE
+BwwHU2FsZm9yZDEaMBgGA1UECgwRQ29tb2RvIENBIExpbWl0ZWQxITAfBgNVBAMM
+GEFBQSBDZXJ0aWZpY2F0ZSBTZXJ2aWNlczCCASIwDQYJKoZIhvcNAQEBBQADggEP
+ADCCAQoCggEBAL5AnfRu4ep2hxxNRUSOvkbIgwadwSr+GB+O5AL686tdUIoWMQua
+BtDFcCLNSS1UY8y2bmhGC1Pqy0wkwLxyTurxFa70VJoSCsN6sjNg4tqJVfMiWPPe
+3M/vg4aijJRPn2jymJBGhCfHdr/jzDUsi14HZGWCwEiwqJH5YZ92IFCokcdmtet4
+YgNW8IoaE+oxox6gmf049vYnMlhvB/VruPsUK6+3qszWY19zjNoFmag4qMsXeDZR
+rOme9Hg6jc8P2ULimAyrL58OAd7vn5lJ8S3frHRNG5i1R8XlKdH5kBjHYpy+g8cm
+ez6KJcfA3Z3mNWgQIJ2P2N7Sw4ScDV7oL8kCAwEAAaOBwDCBvTAdBgNVHQ4EFgQU
+oBEKIz6W8Qfs4q8p74Klf9AwpLQwDgYDVR0PAQH/BAQDAgEGMA8GA1UdEwEB/wQF
+MAMBAf8wewYDVR0fBHQwcjA4oDagNIYyaHR0cDovL2NybC5jb21vZG9jYS5jb20v
+QUFBQ2VydGlmaWNhdGVTZXJ2aWNlcy5jcmwwNqA0oDKGMGh0dHA6Ly9jcmwuY29t
+b2RvLm5ldC9BQUFDZXJ0aWZpY2F0ZVNlcnZpY2VzLmNybDANBgkqhkiG9w0BAQUF
+AAOCAQEACFb8AvCb6P+k+tZ7xkSAzk/ExfYAWMymtrwUSWgEdujm7l3sAg9g1o1Q
+GE8mTgHj5rCl7r+8dFRBv/38ErjHT1r0iWAFf2C3BUrz9vHCv8S5dIa2LX1rzNLz
+Rt0vxuBqw8M0Ayx9lt1awg6nCpnBBYurDC/zXDrPbDdVCYfeU0BsWO/8tqtlbgT2
+G9w84FoVxp7Z8VlIMCFlA2zs6SFz7JsDoeA3raAVGI/6ugLOpyypEBMs1OUIJqsi
+l2D4kF501KKaU73yqWjgom7C12yxow+ev+to51byrvLjKzg6CYG1a4XXvi3tPxq3
+smPi9WIsgtRqAEFQ8TmDn5XpNpaYbg==
 -----END CERTIFICATE-----
 )EOF";
 
@@ -66,7 +72,7 @@ void setup() {
 void loop() {
   if ((millis() - lastTime) > timerDelay) {
     if (WiFi.status() == WL_CONNECTED) {
-      String serverPath = "https://economia.awesomeapi.com.br/json/last/USD-BRL";
+      String serverPath = "https://viacep.com.br/ws/07077020/json";
       jsonBuffer = httpGETRequest(serverPath.c_str());
       JSONVar myObject = JSON.parse(jsonBuffer);
 
@@ -80,11 +86,26 @@ void loop() {
       Serial.println(myObject);
       Serial.println("========================================================================");
 
-      String bidStr = myObject["USDBRL"]["bid"];
-      float bid = bidStr.toFloat();
+      String cep = myObject["cep"];
+      String logradouro = myObject["logradouro"];
+      String bairro = myObject["bairro"];
+      String localidade = myObject["localidade"];
+      String uf = myObject["uf"];
 
-      Serial.print("Cotação do Dólar (USD): R$ ");
-      Serial.println(bid, 2);
+      Serial.print("Cep: ");
+      Serial.println(cep);
+      Serial.println("========================================================================");
+      Serial.print("Logradouro: ");
+      Serial.println(logradouro);
+      Serial.println("========================================================================");
+      Serial.print("Bairro: ");
+      Serial.println(bairro);
+      Serial.println("========================================================================");
+      Serial.print("Localidade: ");
+      Serial.println(localidade);
+      Serial.println("========================================================================");
+      Serial.print("Uf: ");
+      Serial.println(uf);
       Serial.println("========================================================================");
     } else {
       Serial.println("WiFi desconectado");

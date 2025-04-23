@@ -24,8 +24,8 @@
 #include <Arduino_JSON.h>
 
 // WiFi e Timer
-const char* SECRET_SSID = "INSIRA O NOME DA SUA REDE WIFI";
-const char* SECRET_PW = "INSIRA A SENHA DA SUA REDE WIFI";
+const char* SECRET_SSID = "";
+const char* SECRET_PW = "";
 unsigned long lastTime = 0;
 unsigned long timerDelay = 10000;
 
@@ -47,7 +47,7 @@ void loop() {
   if ((millis() - lastTime) > timerDelay) {
     if (WiFi.status() == WL_CONNECTED) {
       
-      String serverPath = "https://economia.awesomeapi.com.br/json/last/USD-BRL";
+      String serverPath = "https://viacep.com.br/ws/07077020/json";
 
       jsonBuffer = httpGETRequest(serverPath.c_str());
       JSONVar myObject = JSON.parse(jsonBuffer);
@@ -62,11 +62,10 @@ void loop() {
       Serial.println(myObject);
       Serial.println("========================================================================");
 
-      String bidStr = myObject["USDBRL"]["bid"];
-      float bid = bidStr.toFloat();
+      String cep = myObject["cep"];
 
-      Serial.print("Cotação do Dólar (USD): R$ ");
-      Serial.println(bid, 2);
+      Serial.print("Cep: ");
+      Serial.println(cep);
       Serial.println("========================================================================");
     }
     else {
