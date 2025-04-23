@@ -55,10 +55,6 @@ vepuoxtGzi4CZ68zJpiq1UvSqTbFJjtbD4seiMHl
 -----END CERTIFICATE-----
 )EOF";
 
-unsigned long lastTime = 0;
-unsigned long timerDelay = 10000;
-String jsonBuffer;
-
 void setup() {
   Serial.begin(115200);
   WiFi.begin(SECRET_SSID, SECRET_PW);
